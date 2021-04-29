@@ -11,8 +11,5 @@ def create_message_digest(key, message):
 
 
 def verify_message_digest(key, message, comparison_digest):
-    key = uuid.UUID(key)
-    hash_a = hmac.new(
-        key.bytes, message.encode("utf-8"), digestmod=hashlib.sha256
-    ).hexdigest()
+    hash_a = create_message_digest(key, message)
     return hash_a == comparison_digest
