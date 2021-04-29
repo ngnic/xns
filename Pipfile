@@ -16,6 +16,9 @@ autoflake = "~=1.4"
 django = "~=3.2"
 django-environ = "~=0.4.0"
 psycopg2 = "~=2.8.4"
+celery = "~=5.0.0"
+redis = "~=3.3.0"
+"celery[redis]" = "~=5.0.0"
 
 [requires]
 python_version = "3.7"

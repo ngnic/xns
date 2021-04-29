@@ -1,6 +1,15 @@
 version: "3"
 
 services:
+  redis:
+    image: redis:6.2 
+    container_name: redis
+    environment:
+      ALLOW_EMPTY_PASSWORD: "yes"
+    expose:
+      - 6379
+    networks:
+      - app 
   db:
     image: postgres:13 
     container_name: db 
@@ -16,6 +25,21 @@ services:
       - POSTGRES_DB=main
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=pass
+  celery:
+    build:
+      context: .
+    container_name: celery
+    command: pipenv run celery -A app worker -l info
+    volumes:
+      - ./:/opt/app:rw
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgres://admin:pass@db:5432/main
+      - REDIS_URL=redis://redis:6379/
+    networks:
+      - app
   app:
     build:
       context: .
@@ -30,6 +54,7 @@ services:
       - db
     environment:
       - DATABASE_URL=postgres://admin:pass@db:5432/main
+      - REDIS_URL=redis://redis:6379/
     networks:
       - app
 networks:

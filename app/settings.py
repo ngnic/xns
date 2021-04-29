@@ -79,6 +79,14 @@ WSGI_APPLICATION = "app.wsgi.application"
 
 DATABASES = {"default": {**env.db(), "DISABLE_SERVER_SIDE_CURSORS": True}}
 
+REDIS_URL = env("REDIS_URL")
+CELERY_RESULT_BACKEND = f"{REDIS_URL}/1"
+CELERY_BROKER_URL = f"{REDIS_URL}/0"
+CELERY_TASK_ALWAYS_EAGER = env("CELERY_TASK_ALWAYS_EAGER", default=False)
+CELERY_ACCEPT_CONTENT = ["application/json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
