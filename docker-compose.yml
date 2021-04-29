@@ -1,0 +1,37 @@
+version: "3"
+
+services:
+  db:
+    image: postgres:13 
+    container_name: db 
+    expose:
+      - 5432
+    ports:
+      - 5432:5432
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - app 
+    environment:
+      - POSTGRES_DB=main
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=pass
+  app:
+    build:
+      context: .
+    container_name: app 
+    expose:
+      - 8000
+    ports:
+      - 8000:8000
+    volumes:
+      - ./:/opt/app:rw
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgres://admin:pass@db:5432/main
+    networks:
+      - app
+networks:
+  app:
+    driver: bridge
