@@ -1,5 +1,7 @@
+from django.db.utils import IntegrityError
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 
 from notifications.models import CustomerCallback
 from notifications.serializers import (CustomerCallbackSerializer,
@@ -14,4 +16,7 @@ class CustomerCallbackViewset(mixins.CreateModelMixin, viewsets.GenericViewSet):
     def notifications(self, request, pk=None):
         self.serializer_class = CustomerMessageSerializer
         request.data["callback"] = pk
-        return super().create(request)
+        try:
+            return super().create(request)
+        except IntegrityError as e:
+            raise ValidationError({"error": str(e)})
