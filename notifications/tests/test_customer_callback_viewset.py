@@ -1,3 +1,5 @@
+from decimal import *
+
 import pytest
 from django.urls import reverse
 from django.utils import timezone
@@ -43,7 +45,7 @@ class TestCustomerCallbackViewset:
             == '{"callback_url":["Enter a valid URL."]}'
         )
 
-    def test_create_notification_route(self, api_client):
+    def test_create_notification_route(self, api_client, mocker):
         request_body = {
             "external_key": "some_key",
             "amount": "1.00",
@@ -54,6 +56,7 @@ class TestCustomerCallbackViewset:
         customer_callback = mixer.blend("notifications.CustomerCallback")
 
         now = timezone.now()
+        mock_fn = mocker.patch("notifications.tasks.send_notification.apply_async")
         with freeze_time(now) as frozen_datetime:
             response = api_client.post(
                 reverse(
@@ -73,9 +76,10 @@ class TestCustomerCallbackViewset:
         assert response.data["transaction_occured_at"] == now.strftime(
             "%Y-%m-%dT%H:%M:%S.%fZ"
         )
+        mock_fn.assert_called_with(kwargs={"message_id": response.data["id"]})
 
     def test_create_notification_route_returns_error_if_external_key_is_duplciated(
-        self, api_client
+        self, api_client, mocker
     ):
         request_body = {
             "external_key": "some_key",
@@ -85,19 +89,15 @@ class TestCustomerCallbackViewset:
             "currency": "SGD",
         }
         customer_callback = mixer.blend("notifications.CustomerCallback")
+        mixer.blend(
+            "notifications.CustomerMessage",
+            callback=customer_callback,
+            amount=Decimal("1.00"),
+            external_key="some_key",
+        )
 
         now = timezone.now()
-        with freeze_time(now) as frozen_datetime:
-            response = api_client.post(
-                reverse(
-                    "notifications:customercallback-notifications",
-                    kwargs={"pk": customer_callback.id},
-                ),
-                request_body,
-                format="json",
-            )
-        assert response.status_code == status.HTTP_201_CREATED
-
+        mock_fn = mocker.patch("notifications.tasks.send_notification.apply_async")
         with freeze_time(now) as frozen_datetime:
             response = api_client.post(
                 reverse(
@@ -109,3 +109,4 @@ class TestCustomerCallbackViewset:
             )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "error" in response.data
+        mock_fn.assert_not_called()
