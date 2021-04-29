@@ -26,4 +26,5 @@ class CustomerMessageSerializer(serializers.ModelSerializer):
             "transaction_occured_at",
             "callback",
         ]
+        extra_kwargs = {"callback": {"write_only": True}}
         read_only_fields = ["id", "transaction_occured_at"]
