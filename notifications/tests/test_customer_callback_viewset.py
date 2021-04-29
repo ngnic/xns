@@ -73,3 +73,39 @@ class TestCustomerCallbackViewset:
         assert response.data["transaction_occured_at"] == now.strftime(
             "%Y-%m-%dT%H:%M:%S.%fZ"
         )
+
+    def test_create_notification_route_returns_error_if_external_key_is_duplciated(
+        self, api_client
+    ):
+        request_body = {
+            "external_key": "some_key",
+            "amount": "1.00",
+            "account_number": "ABC",
+            "bank_code": "ABC",
+            "currency": "SGD",
+        }
+        customer_callback = mixer.blend("notifications.CustomerCallback")
+
+        now = timezone.now()
+        with freeze_time(now) as frozen_datetime:
+            response = api_client.post(
+                reverse(
+                    "notifications:customercallback-notifications",
+                    kwargs={"pk": customer_callback.id},
+                ),
+                request_body,
+                format="json",
+            )
+        assert response.status_code == status.HTTP_201_CREATED
+
+        with freeze_time(now) as frozen_datetime:
+            response = api_client.post(
+                reverse(
+                    "notifications:customercallback-notifications",
+                    kwargs={"pk": customer_callback.id},
+                ),
+                request_body,
+                format="json",
+            )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "error" in response.data
