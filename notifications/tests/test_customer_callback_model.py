@@ -3,13 +3,7 @@ from django.core import exceptions
 from django.db import IntegrityError
 from django.utils import timezone
 from freezegun import freeze_time
-from mixer.backend.django import mixer
 from notifications.models import CustomerCallback
-
-
-@pytest.fixture
-def customer_callback():
-    return mixer.blend("notifications.CustomerCallback")
 
 
 @pytest.mark.django_db
