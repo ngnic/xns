@@ -23,7 +23,8 @@ class CustomerCallbackViewset(
     @action(detail=True, methods=["post"])
     def notifications(self, request, pk=None):
         self.serializer_class = CustomerMessageSerializer
-        request.data["callback"] = pk
+        instance = self.get_object()
+        request.data["callback"] = instance.id
         try:
             response = super().create(request)
             if response.status_code == status.HTTP_201_CREATED:
