@@ -110,3 +110,73 @@ class TestCustomerCallbackViewset:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "error" in response.data
         mock_fn.assert_not_called()
+
+    def test_delete_route(self, api_client, mocker):
+        customer_callback = mixer.blend("notifications.CustomerCallback")
+        customer_a_callback = mixer.blend("notifications.CustomerCallback")
+        message = mixer.blend(
+            "notifications.CustomerMessage",
+            callback=customer_callback,
+            amount=Decimal("1.00"),
+            external_key="some_key",
+        )
+        message_a = mixer.blend(
+            "notifications.CustomerMessage",
+            callback=customer_a_callback,
+            amount=Decimal("1.00"),
+            external_key="some_key_a",
+        )
+        now = timezone.now()
+        with freeze_time(now) as frozen_datetime:
+            response = api_client.delete(
+                reverse(
+                    "notifications:customercallback-detail",
+                    kwargs={"pk": customer_callback.id},
+                )
+            )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        message.refresh_from_db()
+        customer_callback.refresh_from_db()
+        message_a.refresh_from_db()
+        customer_a_callback.refresh_from_db()
+        assert customer_callback.deleted_at == now
+        assert message.deleted_at == now
+        assert customer_a_callback.deleted_at is None
+        assert message_a.deleted_at is None
+
+    def test_delete_route_idempotency(self, api_client, mocker):
+        customer_callback = mixer.blend("notifications.CustomerCallback")
+        message = mixer.blend(
+            "notifications.CustomerMessage",
+            callback=customer_callback,
+            amount=Decimal("1.00"),
+            external_key="some_key",
+        )
+        time_a = timezone.now()
+        with freeze_time(time_a) as frozen_datetime:
+            response = api_client.delete(
+                reverse(
+                    "notifications:customercallback-detail",
+                    kwargs={"pk": customer_callback.id},
+                )
+            )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        message.refresh_from_db()
+        customer_callback.refresh_from_db()
+        assert customer_callback.deleted_at == time_a
+        assert message.deleted_at == time_a
+
+        time_b = timezone.now()
+        with freeze_time(time_b) as frozen_datetime:
+            response = api_client.delete(
+                reverse(
+                    "notifications:customercallback-detail",
+                    kwargs={"pk": customer_callback.id},
+                )
+            )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        message.refresh_from_db()
+        customer_callback.refresh_from_db()
+        # time remains unchanged
+        assert customer_callback.deleted_at == time_a
+        assert message.deleted_at == time_a
