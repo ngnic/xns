@@ -138,7 +138,7 @@ class TestSendNotificationTask:
 
             mock_fn.assert_called_with(
                 kwargs={"message_id": message.id.hex},
-                countdown=math.pow(2, attempt_index + 1),
+                countdown=math.pow(2, attempt_index + 1) * 60,
             )
 
     @responses.activate

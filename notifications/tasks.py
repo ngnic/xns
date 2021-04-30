@@ -46,7 +46,7 @@ def send_notification(message_id, manual_retry=False):
         if not manual_retry and next_attempt < settings.MAX_RETRY_ATTEMPTS:
             send_notification.apply_async(
                 kwargs={"message_id": message_id},
-                countdown=math.pow(2, next_attempt),
+                countdown=math.pow(2, next_attempt) * 60,
             )
     else:
         message.received_at = timezone.now()
