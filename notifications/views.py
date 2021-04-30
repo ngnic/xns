@@ -1,4 +1,8 @@
+import uuid
+
+from django.db import transaction
 from django.db.utils import IntegrityError
+from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -10,7 +14,9 @@ from notifications.serializers import (CustomerCallbackSerializer,
 from notifications.tasks import send_notification
 
 
-class CustomerCallbackViewset(mixins.CreateModelMixin, viewsets.GenericViewSet):
+class CustomerCallbackViewset(
+    mixins.DestroyModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet
+):
     queryset = CustomerCallback.objects.filter(deleted_at__isnull=True)
     serializer_class = CustomerCallbackSerializer
 
@@ -27,6 +33,18 @@ class CustomerCallbackViewset(mixins.CreateModelMixin, viewsets.GenericViewSet):
             return response
         except IntegrityError as e:
             raise ValidationError({"error": str(e)})
+
+    def destroy(self, request, pk=None):
+        now = timezone.now()
+        callback_id = uuid.UUID(pk)
+        with transaction.atomic():
+            CustomerCallback.objects.filter(
+                id=callback_id, deleted_at__isnull=True
+            ).update(deleted_at=now)
+            CustomerMessage.objects.filter(
+                callback_id=callback_id, deleted_at__isnull=True
+            ).update(deleted_at=now)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class NotificationViewset(viewsets.GenericViewSet):
